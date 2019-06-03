@@ -12,6 +12,7 @@ import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -22,25 +23,25 @@ public class MainActivity extends AppCompatActivity {
     private Observable<String> myObservable;
     private DisposableObserver<String> myObserver;
     private static final String TAG = "MainActivity";
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        myObserver.dispose();
+        compositeDisposable.clear();
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         myObservable = Observable.just(myGreeting);
-        myObservable.subscribeOn(Schedulers.io());
-        myObservable.observeOn(AndroidSchedulers.mainThread());
         myObserver = new DisposableObserver<String>() {
             @Override
             public void onNext(String s) {
                 Log.d(TAG, "onNext: ");
+                binding.text.setText(s);
             }
 
             @Override
@@ -53,8 +54,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "onComplete: ");
             }
         };
-
-        myObservable.subscribe(myObserver);
-
+        compositeDisposable.add(myObservable
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(myObserver));
     }
 }
